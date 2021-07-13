@@ -1,12 +1,11 @@
 package com.leverx.animals.dao;
 
 import com.leverx.animals.entity.Animal;
+import com.leverx.animals.exception.AutoIdException;
+import com.leverx.animals.exception.UpdatingIdException;
 import com.leverx.animals.jpa.JpaUtil;
 
-import javax.persistence.EntityManager;
-import javax.persistence.NoResultException;
-import javax.persistence.PersistenceException;
-import javax.persistence.RollbackException;
+import javax.persistence.*;
 import java.util.List;
 import java.util.Optional;
 
@@ -33,13 +32,14 @@ public class AnimalDaoImpl implements AnimalDao {
 
     @Override
     public Animal create(Animal animal) {
+        EntityTransaction et = em.getTransaction();
         try {
-            em.getTransaction().begin();
+            et.begin();
             em.persist(animal);
-            em.getTransaction().commit();
+            et.commit();
         } catch (PersistenceException e) {
-            // throw exception in future
-            em.getTransaction().rollback();
+            et.rollback();
+            throw new AutoIdException(animal.getClass());
         }
         return animal;
     }
@@ -51,25 +51,26 @@ public class AnimalDaoImpl implements AnimalDao {
 
     @Override
     public Animal update(Animal animal) {
+        EntityTransaction et = em.getTransaction();
         try {
-            em.getTransaction().begin();
+            et.begin();
             em.merge(animal);
-            em.getTransaction().commit();
+            et.commit();
         } catch (RollbackException e) {
-            em.getTransaction().rollback();
-            // add throw in future
-            // replace getTranscation().begin() with Transaction-obj
+            et.rollback();
+            throw new UpdatingIdException(animal.getClass());
         }
         return animal;
     }
 
     @Override
     public void deleteById(long id) {
-        em.getTransaction().begin();
+        EntityTransaction et = em.getTransaction();
+        et.begin();
         em.createQuery("delete from animals a where a.id = :id")
                 .setParameter("id", id)
                 .executeUpdate();
-        em.getTransaction().commit();
+        et.commit();
     }
 
 }
